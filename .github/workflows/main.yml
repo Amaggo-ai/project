@@ -34,8 +34,25 @@ jobs:
           key: ${{ secrets.PRIVATE_KEY }}
           port: ${{ secrets.PORT }}
           script: |
-          # Stop Tomcat - sudo systemctl stop tomcat
-          # Remove old WAR file - sudo rm -rf /opt/tomcat/webapps/my-app.war
-          # Copy new WAR file - sudo cp target/my-app.war /opt/tomcat/webapps/
-          # Start Tomcat - sudo systemctl start tomcat
-   
+            echo "Transferring WAR file to server..."
+            scp -i ~/.ssh/id_rsa ./target/*.war ${{ secrets.USERNAME }}@${{ secrets.HOST }}:/tmp/
+            echo "Deployment complete. Listing files in /tmp:"
+            ls -lart /tmp
+
+      # Step 5: Trigger Jenkins Build
+      - name: Trigger Jenkins Build
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.JENKINS_HOST }}
+          username: ${{ secrets.JENKINS_USERNAME }}
+          key: ${{ secrets.JENKINS_PRIVATE_KEY }}
+          port: ${{ secrets.JENKINS_PORT }}
+          script: |
+            echo "Fetching Jenkins crumb..."
+            CRUMB=$(curl -u ${{ secrets.JENKINS_USERNAME }}:${{ secrets.JENKINS_API_TOKEN }} \
+              http://${{ secrets.JENKINS_HOST }}:${{ secrets.JENKINS_PORT }}/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,":",//crumb))
+            
+            echo "Triggering Jenkins build..."
+            curl -X POST http://${{ secrets.JENKINS_HOST }}:${{ secrets.JENKINS_PORT }}/job/${{ secrets.JENKINS_JOB_NAME }}/build \
+              --user ${{ secrets.JENKINS_USERNAME }}:${{ secrets.JENKINS_API_TOKEN }} \
+              -H "$CRUMB"
