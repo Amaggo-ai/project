@@ -22,10 +22,10 @@ jobs:
           java-version: '17'
 
         #checking network connectivity
-      - name: Check Network Connectivity
+      - name: Test Maven repository directly
         run: |
-          echo "Checking network connectivity..."
-          ping -c 3 repo.maven.apache.org
+          curl -v https://repo.maven.apache.org
+
 
       # Step 3: Build with Maven
       - name: Build with Maven
