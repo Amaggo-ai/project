@@ -45,7 +45,7 @@ jobs:
       - name: Build with Maven
         run: |
           echo "Building with Maven..."
-          MAVEN_OPTS="-Xmx1024m -XX:MaxPermSize=256m" mvn -f ./pom.xml clean install -Dmaven.wagon.http.timeout=60000
+          MAVEN_OPTS="-Xmx1024m -XX: mvn -f ./pom.xml clean install -Dmaven.wagon.http.timeout=60000
       
       # Step 4: SSH into Server and Deploy
       - name: SSH into Server and Deploy
