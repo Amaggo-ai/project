@@ -42,35 +42,48 @@ jobs:
           echo "Setting MAVEN_OPTS..."
           export MAVEN_OPTS="-Xmx1024m"
 
-     
-      # Step 4: SSH into Server and Deploy
+
+
+     # Step 4: SSH into Server and Deploy
       - name: SSH into Server and Deploy
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.PRIVATE_KEY }}
-          port: ${{ secrets.PORT }}
-          script: |
-            echo "Transferring WAR file to server..."
-            scp -i ~/.ssh/id_rsa ./target/*.war ubuntu@${{ secrets.HOST }}:/tmp/
-            echo "Deploying WAR file to Tomcat..."
-            mv /tmp/*.war /opt/tomcat/webapps/
-            echo "Restarting Tomcat..."
-            sudo systemctl restart tomcat
+         host: ${{ secrets.HOST }}
+         username: ${{ secrets.USERNAME }}
+         key: ${{ secrets.PRIVATE_KEY }}
+         port: ${{ secrets.PORT }}
+         script: |
+           echo "Transferring WAR file to server..."
+           scp -o StrictHostKeyChecking=no -P ${{ secrets.PORT }} ./target/*.war ${{ secrets.USERNAME }}@${{ secrets.HOST }}:/tmp/ || { echo "SCP failed"; exit 1; }
+      
+           echo "Deploying WAR file to Tomcat..."
+           sudo mv /tmp/*.war /opt/tomcat/webapps/ || { echo "Deploy failed"; exit 1; }
 
-      # Step 5: Trigger Jenkins Build
+           echo "Restarting Tomcat..."
+           sudo systemctl restart tomcat || { echo "Tomcat restart failed"; exit 1; }
+
+# Step 5: Trigger Jenkins Build
       - name: Trigger Jenkins Build
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.JENKINS_HOST }}
-          username: ${{ secrets.JENKINS_USERNAME }}
-          key: ${{ secrets.JENKINS_PRIVATE_KEY }}
-          port: ${{ secrets.JENKINS_PORT }}
-          script: |
-            echo "Triggering Jenkins Build..."
-            CRUMB=$(curl -u ${{ secrets.JENKINS_USERNAME }}:${{ secrets.JENKINS_API_TOKEN }} \
-              http://${{ secrets.JENKINS_HOST }}:${{ secrets.JENKINS_PORT }}/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,":",//crumb))
-            curl -X POST http://${{ secrets.JENKINS_HOST }}:${{ secrets.JENKINS_PORT }}/job/${{ secrets.JENKINS_JOB_NAME }}/build \
-              --user ${{ secrets.JENKINS_USERNAME }}:${{ secrets.JENKINS_API_TOKEN }} \
-              -H "$CRUMB"
+        run: |
+          echo "Retrieving Jenkins crumb..."
+          CRUMB=$(curl -s -u "${{ secrets.JENKINS_USERNAME }}:${{ secrets.JENKINS_API_TOKEN }}" \
+           http://${{ secrets.JENKINS_HOST }}:${{ secrets.JENKINS_PORT }}/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,":",//crumb)) || {
+             echo "Failed to retrieve Jenkins crumb"
+             exit 1
+           }
+
+           echo "Jenkins crumb retrieved: $CRUMB"
+    
+           echo "Triggering Jenkins build..."
+           curl -X POST http://${{ secrets.JENKINS_HOST }}:${{ secrets.JENKINS_PORT }}/job/${{ secrets.JENKINS_JOB_NAME }}/build \
+             --user "${{ secrets.JENKINS_USERNAME }}:${{ secrets.JENKINS_API_TOKEN }}" \
+              -H "$CRUMB" || {
+               echo "Failed to trigger Jenkins build"
+               exit 1
+              }
+
+           echo "✅ Jenkins build triggered successfully!"
+
+
+
+   
