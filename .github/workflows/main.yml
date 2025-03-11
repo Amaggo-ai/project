@@ -21,11 +21,13 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      # Step 3: Build with Maven (set working directory if needed)
+      # Step 3: Build with Maven
       - name: Build with Maven
-        run: mvn -f ./pom.xml clean install
+        run: |
+          echo "Building with Maven..."
+          mvn -f ./pom.xml clean install -Dmaven.wagon.http.timeout=60000
 
-      # Step 4: Deploy using SSH
+      # Step 4: SSH into Server and Deploy
       - name: SSH into Server and Deploy
         uses: appleboy/ssh-action@master
         with:
@@ -35,9 +37,11 @@ jobs:
           port: ${{ secrets.PORT }}
           script: |
             echo "Transferring WAR file to server..."
-            scp -i ~/.ssh/id_rsa ./target/*.war ${{ secrets.USERNAME }}@${{ secrets.HOST }}:/tmp/
-            echo "Deployment complete. Listing files in /tmp:"
-            ls -lart /tmp
+            scp -i ~/.ssh/id_rsa ./target/*.war ubuntu@${{ secrets.HOST }}:/tmp/
+            echo "Deploying WAR file to Tomcat..."
+            mv /tmp/*.war /opt/tomcat/webapps/
+            echo "Restarting Tomcat..."
+            sudo systemctl restart tomcat
 
       # Step 5: Trigger Jenkins Build
       - name: Trigger Jenkins Build
@@ -48,11 +52,9 @@ jobs:
           key: ${{ secrets.JENKINS_PRIVATE_KEY }}
           port: ${{ secrets.JENKINS_PORT }}
           script: |
-            echo "Fetching Jenkins crumb..."
+            echo "Triggering Jenkins Build..."
             CRUMB=$(curl -u ${{ secrets.JENKINS_USERNAME }}:${{ secrets.JENKINS_API_TOKEN }} \
               http://${{ secrets.JENKINS_HOST }}:${{ secrets.JENKINS_PORT }}/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,":",//crumb))
-            
-            echo "Triggering Jenkins build..."
             curl -X POST http://${{ secrets.JENKINS_HOST }}:${{ secrets.JENKINS_PORT }}/job/${{ secrets.JENKINS_JOB_NAME }}/build \
               --user ${{ secrets.JENKINS_USERNAME }}:${{ secrets.JENKINS_API_TOKEN }} \
               -H "$CRUMB"
