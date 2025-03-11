@@ -1,29 +1,31 @@
-name: CI Pipeline
+name: Maven Build and Deploy
 
 on:
   push:
-    branches:
-      - main
-  pull_request:
     branches:
       - main
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    
     steps:
-      - name: Checkout Code
+      # Step 1: Checkout code
+      - name: Checkout code
         uses: actions/checkout@v4
-      
-      - name: Set up JDK 17
+
+      # Step 2: Set up Java environment
+      - name: Set up JDK
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
+      # Step 3: Build with Maven (set working directory if needed)
       - name: Build with Maven
-        run: mvn clean install
-
-      - name: Run Tests
-        run: mvn test
+        run: mvn -f ./pom.xml clean install
+        
+      # Step 4: Deploy to Tomcat (if needed)
+      - name: Deploy to Tomcat
+        run: |
+          scp ./target/my-app.war ${{ secrets.USERNAME }}@${{ secrets.HOST }}:/opt/tomcat/webapps
