@@ -37,7 +37,7 @@ jobs:
       - name: Download the WAR artifact
         uses: actions/download-artifact@v4
         with:
-          name: myapp-1.0-SNAPSHOT.war 
+          name: myapp-war 
           path: target/
 
       - name: Deploy to EC2
