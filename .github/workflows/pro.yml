@@ -28,7 +28,7 @@ jobs:
         with:
           name: myapp-war
           path: target/*.war
-          
+
   deploy:
     needs: build
     runs-on: ubuntu-latest
@@ -40,6 +40,10 @@ jobs:
           name: myapp-war
           path: target/
 
+      - name: Add remote host to known hosts
+        run: |
+          ssh-keyscan -H ${{ secrets.HOST }} >> ~/.ssh/known_hosts
+
       - name: Deploy to EC2 using SSH
         uses: appleboy/ssh-action@v0.1.7
         with:
@@ -50,4 +54,3 @@ jobs:
           script: |
             scp target/*.war ubuntu@${{ secrets.HOST }}:/var/lib/tomcat9/webapps/myapp.war
             ssh ubuntu@${{ secrets.HOST }} "sudo systemctl restart tomcat9"
-
