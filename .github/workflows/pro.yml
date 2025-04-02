@@ -40,11 +40,15 @@ jobs:
           name: myapp-war 
           path: target/
 
-      - name: Deploy to EC2
-        run: |
-          echo "$EC2_KEY" > pro.pem
-          chmod 600 pro.pem
-          scp -o StrictHostKeyChecking=no -i pro.pem target/myapp-1.0-SNAPSHOT.war ubuntu@${{ secrets.EC2_PUBLIC_IP }}:/var/lib/tomcat9/webapps/myapp.war
-          ssh -o StrictHostKeyChecking=no -i pro.pem ubuntu@${{ secrets.EC2_PUBLIC_IP }} "sudo systemctl restart tomcat9"
-
+     
+      - name: Deploy to EC2 using SSH
+        uses: cross-the-world/ssh-scp-pipelines@latest
+        with:
+          host: ${{ secrets.HOST }}
+          user: ${{ secrets.USERNAME }}
+          port: ${{ secrets.PORT }}
+          scp: |
+            target/*.war => /var/lib/tomcat9/webapps/myapp.war
+          last_ssh: |
+            sudo systemctl restart tomcat9
 
