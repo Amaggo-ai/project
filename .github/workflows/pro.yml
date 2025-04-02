@@ -53,7 +53,8 @@ jobs:
 
       - name: Deploy WAR file to EC2
         run: |
-          scp -o StrictHostKeyChecking=no -i ec2-key.pem target/*.war ${{ secrets.USERNAME }}@${{ secrets.HOST }}:/var/lib/tomcat9/webapps/myapp.war
+          scp -o StrictHostKeyChecking=no -i ec2-key.pem target/*.war ${{ secrets.USERNAME }}@${{ secrets.HOST }}:/home/ubuntu/myapp.war
+          ssh -o StrictHostKeyChecking=no -i ec2-key.pem ${{ secrets.USERNAME }}@${{ secrets.HOST }} "sudo mv /home/ubuntu/myapp.war /var/lib/tomcat9/webapps/myapp.war && sudo chown tomcat:tomcat /var/lib/tomcat9/webapps/myapp.war"
 
       - name: Restart Tomcat on EC2
         run: |
