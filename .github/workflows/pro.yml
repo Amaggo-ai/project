@@ -29,7 +29,7 @@ jobs:
           name: myapp-war
           path: target/*.war
 
-    deploy:
+  deploy:  # <-- This should be at the same level as 'build'
     needs: build
     runs-on: ubuntu-latest
 
