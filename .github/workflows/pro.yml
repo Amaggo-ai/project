@@ -28,7 +28,7 @@ jobs:
         with:
           name: myapp-war
           path: target/*.war
-
+          
   deploy:
     needs: build
     runs-on: ubuntu-latest
@@ -37,18 +37,17 @@ jobs:
       - name: Download the WAR artifact
         uses: actions/download-artifact@v4
         with:
-          name: myapp-war 
+          name: myapp-war
           path: target/
 
-     
       - name: Deploy to EC2 using SSH
-        uses: cross-the-world/ssh-scp-pipelines@v1.1
+        uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.HOST }}
-          user: ${{ secrets.USERNAME }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.PORT }}
-          scp: |
-            target/*.war => /var/lib/tomcat9/webapps/myapp.war
-          last_ssh: |
-            sudo systemctl restart tomcat9
+          script: |
+            scp target/*.war ubuntu@${{ secrets.HOST }}:/var/lib/tomcat9/webapps/myapp.war
+            ssh ubuntu@${{ secrets.HOST }} "sudo systemctl restart tomcat9"
 
