@@ -42,7 +42,7 @@ jobs:
 
      
       - name: Deploy to EC2 using SSH
-        uses: cross-the-world/ssh-scp-pipelines@latest
+        uses: cross-the-world/ssh-scp-pipelines@v1.1
         with:
           host: ${{ secrets.HOST }}
           user: ${{ secrets.USERNAME }}
